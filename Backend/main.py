@@ -5,7 +5,7 @@ import sqlite3
 
 app = FastAPI()
 
-# 1. CORS Setup - This allows your Firebase website to talk to Render
+# 1. CORS Setup - Allows your Firebase website to talk to Render
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
@@ -18,12 +18,12 @@ app.add_middleware(
 class WaterQuery(BaseModel):
     message: str
 
-# 3. The Database Brain
+# 3. The Chatbot Logic
 @app.post("/ask")
 async def ask_bot(item: WaterQuery):
     user_input = item.message.strip().lower()
 
-    # --- 1. Identity & Name Questions ---
+    # --- A. Identity & Name Questions ---
     about_triggers = [
         "what is ingres", 
         "who are you", 
@@ -36,7 +36,7 @@ async def ask_bot(item: WaterQuery):
             "chartData": []
         }
     
-    # --- 2. Purpose & Capability Questions ---
+    # --- B. Purpose & Capability Questions ---
     purpose_triggers = [
         "what it does", 
         "how to use", 
@@ -50,40 +50,43 @@ async def ask_bot(item: WaterQuery):
             "chartData": []
         }
     
-    # --- 3. DATABASE LOGIC (Existing comparison code) ---
-    conn = sqlite3.connect("ingres.db")
-    cursor = conn.cursor()
+    # --- C. DATABASE LOGIC ---
+    try:
+        # Using './' ensures it looks inside the Backend folder for the database
+        with sqlite3.connect("./ingres.db") as conn:
+            cursor = conn.cursor()
 
-    # Identify the entities (States/Districts) being compared
-    entities = user_input.replace("compare", "").replace("and", " ").replace("vs", " ").split()
-    entities = [e.strip() for e in entities if len(e) > 2]
+            # Clean the input to find names
+            entities = user_input.replace("compare", "").replace("and", " ").replace("vs", " ").split()
+            entities = [e.strip() for e in entities if len(e) > 2]
 
-    comparison_data = []
+            comparison_data = []
 
-    for entity in entities:
-        # Check if the entity is a STATE
-        cursor.execute("SELECT extraction FROM assessments WHERE state LIKE ?", (f"%{entity}%",))
-        state_rows = cursor.fetchall()
-        
-        if state_rows:
-            avg_extraction = sum(r[0] for r in state_rows) / len(state_rows)
-            comparison_data.append({
-                "name": entity.capitalize(),
-                "extraction": round(avg_extraction, 2)
-            })
-            continue 
+            for entity in entities:
+                # Search for States
+                cursor.execute("SELECT extraction FROM assessments WHERE state LIKE ?", (f"%{entity}%",))
+                state_rows = cursor.fetchall()
+                
+                if state_rows:
+                    avg_extraction = sum(r[0] for r in state_rows) / len(state_rows)
+                    comparison_data.append({
+                        "name": entity.capitalize(),
+                        "extraction": round(avg_extraction, 2)
+                    })
+                    continue 
 
-        # If not a state, check if it's a DISTRICT or BLOCK
-        cursor.execute("SELECT extraction, block_name FROM assessments WHERE district_name LIKE ? OR block_name LIKE ?", (f"%{entity}%", f"%{entity}%"))
-        row = cursor.fetchone()
-        if row:
-            comparison_data.append({
-                "name": entity.capitalize(),
-                "extraction": row[0]
-            })
+                # Search for Districts or Blocks
+                cursor.execute("SELECT extraction, block_name FROM assessments WHERE district_name LIKE ? OR block_name LIKE ?", (f"%{entity}%", f"%{entity}%"))
+                row = cursor.fetchone()
+                if row:
+                    comparison_data.append({
+                        "name": entity.capitalize(),
+                        "extraction": row[0]
+                    })
+    except Exception as e:
+        return {"text": f"Error accessing database: {str(e)}", "chartData": []}
 
-    conn.close()
-
+    # --- D. FINAL RESPONSE ---
     if not comparison_data:
         return {
             "text": "I couldn't find any data for those names. Try asking 'What is INGRES?' or 'Compare Punjab and Haryana'.", 
@@ -95,7 +98,7 @@ async def ask_bot(item: WaterQuery):
         "chartData": comparison_data
     }
 
-# This root route helps check if the API is alive
+# Root route to check if API is alive
 @app.get("/")
 def read_root():
     return {"status": "INGRES API is running"}
