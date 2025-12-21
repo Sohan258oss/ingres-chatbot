@@ -1,151 +1,179 @@
+/* ------------------ GLOBAL ------------------ */
 * {
   box-sizing: border-box;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 body {
   margin: 0;
-  background: #eef6fb;
+  background: linear-gradient(180deg, #f5f9ff, #eef3f9);
 }
 
+/* ------------------ APP LAYOUT ------------------ */
 .app {
   display: flex;
   flex-direction: column;
   height: 100vh;
 }
 
+/* ------------------ HEADER ------------------ */
 .header {
-  background: linear-gradient(90deg, #0077b6, #0096c7);
-  color: white;
-  padding: 16px;
-  font-size: 22px;
-  font-weight: 600;
+  padding: 14px;
   text-align: center;
+  font-size: 1.3rem;
+  font-weight: 600;
+  background: linear-gradient(90deg, #00c6ff, #0072ff);
+  color: white;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
 }
 
-.welcome {
-  background: white;
-  margin: 16px auto;
-  padding: 20px;
-  width: 90%;
-  max-width: 900px;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-}
-
+/* ------------------ CHAT AREA ------------------ */
 .chat {
   flex: 1;
-  padding: 20px;
+  padding: 16px;
   overflow-y: auto;
 }
 
+/* ------------------ MESSAGE STYLES ------------------ */
 .msg {
-  margin-bottom: 20px;
+  margin-bottom: 14px;
+  display: flex;
 }
 
 .msg.user {
-  text-align: right;
+  justify-content: flex-end;
 }
 
 .msg.bot {
-  text-align: left;
+  justify-content: flex-start;
 }
 
 .bubble {
-  display: inline-block;
-  padding: 14px 18px;
-  border-radius: 20px;
-  max-width: 70%;
+  max-width: 75%;
+  padding: 12px 16px;
+  border-radius: 18px;
   line-height: 1.5;
+  animation: fadeIn 0.25s ease-in;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.user .bubble {
-  background: #0077b6;
+/* USER BUBBLE */
+.msg.user .bubble {
+  background: linear-gradient(135deg, #4facfe, #00f2fe);
   color: white;
+  border-bottom-right-radius: 6px;
 }
 
-.bot .bubble {
-  background: white;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+/* BOT BUBBLE */
+.msg.bot .bubble {
+  background: #f4f6f8;
+  color: #333;
+  border-bottom-left-radius: 6px;
 }
 
-.loading {
+/* LOADING */
+.bubble.loading {
   font-style: italic;
+  opacity: 0.85;
 }
 
-.chart-card {
+/* ------------------ WELCOME SECTION ------------------ */
+.welcome-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 40px;
+}
+
+.welcome-box {
+  max-width: 600px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+}
+
+.welcome-box h2 {
+  margin-top: 0;
+}
+
+.suggestions-box {
   margin-top: 14px;
+  background: #f0f5ff;
+  padding: 14px;
+  border-radius: 12px;
+}
+
+.suggestions-box ul {
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
+
+/* ------------------ CHART CARD ------------------ */
+.chart-card {
+  margin-top: 10px;
   background: white;
-  padding: 16px;
   border-radius: 16px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 .chart-container {
-  width: 100%;
-  height: 320px;
+  height: 260px;
 }
 
+/* ------------------ INPUT AREA ------------------ */
 .input-box {
   display: flex;
   gap: 10px;
-  padding: 16px;
+  padding: 12px;
   background: white;
-  border-top: 1px solid #ddd;
+  border-top: 1px solid #e5e5e5;
 }
 
 textarea {
   flex: 1;
   resize: none;
-  height: 50px;
-  padding: 12px;
-  font-size: 15px;
-  border-radius: 12px;
-  border: 1px solid #ccc;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid #ddd;
+  font-size: 0.95rem;
+  outline: none;
 }
 
+textarea:focus {
+  border-color: #0072ff;
+}
+
+/* SEND BUTTON */
 button {
-  background: #0077b6;
-  color: white;
+  padding: 0 22px;
+  border-radius: 14px;
   border: none;
-  padding: 0 24px;
-  border-radius: 12px;
-  font-size: 16px;
+  background: linear-gradient(135deg, #0072ff, #00c6ff);
+  color: white;
+  font-weight: 500;
   cursor: pointer;
 }
 
 button:disabled {
-  background: #aaa;
-}
-.welcome-container {
-  display: flex;
-  justify-content: flex-start;
-  padding: 20px;
-  animation: fadeIn 0.5s ease-in;
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-.welcome-box {
-  background: white;
-  border: 1px solid #ddd;
-  border-left: 6px solid #3498db;
-  border-radius: 15px;
-  padding: 25px;
-  max-width: 450px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+button:hover:not(:disabled) {
+  opacity: 0.9;
 }
 
-.suggestions-box {
-  margin-top: 15px;
-  background: #f1f8ff;
-  padding: 10px 15px;
-  border-radius: 10px;
-}
-
-.suggestions-box ul {
-  padding-left: 20px;
-}
-
+/* ------------------ ANIMATIONS ------------------ */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
