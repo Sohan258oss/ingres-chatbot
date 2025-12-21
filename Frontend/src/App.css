@@ -37,6 +37,12 @@ body {
   display: flex;
   flex-direction: column; /* Crucial for aligning messages */
 }
+.msg {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 24px;
+  width: 100% !important; /* Forces the container to span the full chat width */
+}
 
 /* ------------------ MESSAGE STYLES ------------------ */
 .msg.user {
