@@ -166,3 +166,13 @@ async def ask_bot(item: WaterQuery):
             return {"text": value, "chartData": []}
 
     return {"text": "I couldn't find those regions. Try 'Compare Jaipur and Patna'.", "chartData": []}
+@app.get("/")
+def read_root():
+    return {
+        "status": "Online",
+        "message": "INGRES AI Groundwater API is running",
+        "endpoints": {
+            "ask": "/ask (POST)",
+            "health": "/ (GET)"
+        }
+    }
