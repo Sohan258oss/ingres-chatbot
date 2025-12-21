@@ -35,7 +35,8 @@ body {
   padding: 16px;
   overflow-y: auto;
   display: flex;
-  flex-direction: column; /* Crucial for aligning messages */
+  flex-direction: column; 
+  width: 100%; /* Ensure it spans full width */
 }
 .msg {
   display: flex;
