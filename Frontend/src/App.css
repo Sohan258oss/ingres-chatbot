@@ -47,6 +47,7 @@ body {
 /* ------------------ MESSAGE STYLES ------------------ */
 .msg.user {
   align-items: flex-end; /* Aligns the text inside the bubble to the right */
+  text-align: right;
 }
 
 .msg.user .bubble {
