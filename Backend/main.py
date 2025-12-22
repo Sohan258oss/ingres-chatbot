@@ -85,6 +85,16 @@ async def ask_bot(item: WaterQuery):
             last_data_cache["data"] = []
             return {"text": "Here’s a visual breakdown of the data 📊", "chartData": data}
         return {"text": "I don’t have any prepared data yet.", "chartData": []}
+    
+    elif user_input in ["no", "n", "nope", "not now", "stop"]:
+        last_data_cache["data"] = [] # Optional: clear cache if they decline
+        return {
+            "text": "No problem! 😊 What would you like to do next? You can ask me:\n\n"
+                    "* **'Why is [State] stressed?'** to learn the causes.\n"
+                    "* **'What is an aquifer?'** for a definition.\n"
+                    "* **'Compare [District A] and [District B]'** for more data.",
+            "chartData": []
+        }
 
     found_data = []
     text_prefix = "the comparison"
@@ -145,6 +155,7 @@ async def ask_bot(item: WaterQuery):
 
     # -------------------- RESPONSE --------------------
     if found_data:
+        text_prefix = "the comparison" if len(found_data) > 1 else "your search"
         last_data_cache["data"] = found_data
         explanations = "\n\n".join([explain_extraction(d["name"], d["extraction"]) for d in found_data])
         intro = "Groundwater extraction measures usage relative to natural recharge.\n\n" if is_usage_query else ""
