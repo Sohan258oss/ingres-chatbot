@@ -21,19 +21,17 @@ last_data_cache = {"data": []}
 
 # -------------------- KNOWLEDGE --------------------
 KNOWLEDGE_BASE = {
-    "groundwater": "Groundwater is water stored beneath the Earth’s surface in soil and rock formations called aquifers.",
-    "extraction": "Groundwater extraction refers to pumping water from underground sources for agriculture, drinking, and industry.",
+    "groundwater": "Groundwater is water that has found its way down from the Earth’s surface into the cracks and spaces in soil, sand and rock.The largest use for groundwater is to irrigate crops.",
+    "extraction": "Ground water overuse or overexploitation is defined as a situation in which, over a period of time, theaverage extraction rate from aquifers is greater than the average recharge rate. This leads to a decline in the groundwater levels and may also result in other adverse consequences such as land subsidence, reduced water quality, and ecological damage.",
     "recharge": "Recharge is the process by which rainfall replenishes underground aquifers.",
     "over-exploited": "An over-exploited region extracts more groundwater than it naturally recharges.",
     "safe": "A 'Safe' category means groundwater extraction is below 70% of available recharge.",
     "critical": "A 'Critical' category indicates extraction is between 90% and 100% of recharge capacity.",
     "stage": "Stage of Extraction is the ratio of groundwater used to groundwater available.",
-    "aquifer": "An aquifer is an underground layer of water-bearing permeable rock, rock fractures, or unconsolidated materials (gravel, sand, or silt).",
+    "aquifer": "An aquifer is an underground layer of water-bearing permeable rock, Aquifers are typically made up of gravel, sand, sandstone, or fractured rock, like limestone. Water can move through these materials because they have large connected spaces that make them permeable. The speed at which groundwater flows depends on the size of the spaces in the soil or rock and how well the spaces are connected.",
     "borewell": "A borewell is a deep, narrow hole drilled into the ground to access groundwater from aquifers.",
     "watershed": "A watershed is an area of land where all the water that falls in it and drains off it goes to a common outlet, such as a river or lake.",
     "salinity": "Salinity refers to the concentration of dissolved salts in water. High salinity can make groundwater unsuitable for drinking or irrigation.",
-    "nitrate": "Nitrate is a common groundwater contaminant, often resulting from excessive fertilizer use or sewage leakage, and can be harmful to health at high levels.",
-    "arsenic": "Arsenic is a naturally occurring toxic element found in groundwater in certain regions, particularly in the Ganga-Brahmaputra basin, posing serious health risks."
 }
 
 # -------------------- WHY MAP --------------------
