@@ -82,6 +82,26 @@ def explain_extraction(name, value):
         f"This places it in a **{status}** category, meaning {meaning}."
     )
 
+# -------------------- SUGGESTION ENGINE --------------------
+def get_suggestions(user_input, found_data=None):
+    suggestions = ["Conservation tips", "What is an aquifer?", "Show India map"]
+    if found_data:
+        suggestions.insert(0, "Show chart")
+        for d in found_data[:2]:
+            suggestions.append(f"Why is {d['name']} stressed?")
+    elif "why" in user_input:
+        suggestions.insert(0, "Compare Punjab and Bihar")
+    elif any(k in user_input for k in ["tip", "conservation", "harvesting", "farming"]):
+        suggestions.insert(0, "Search a state like Punjab")
+
+    seen = set()
+    unique = []
+    for s in suggestions:
+        if s.lower() not in seen:
+            unique.append(s)
+            seen.add(s.lower())
+    return unique[:3]
+
 # -------------------- MAIN API --------------------
 @app.post("/ask")
 async def ask_bot(item: WaterQuery):
@@ -101,8 +121,16 @@ async def ask_bot(item: WaterQuery):
         if last_data_cache["data"]:
             data = last_data_cache["data"]
             last_data_cache["data"] = []
-            return {"text": "Here’s a visual breakdown of the data 📊", "chartData": data}
-        return {"text": "I don’t have any prepared data yet.", "chartData": []}
+            return {
+                "text": "Here’s a visual breakdown of the data 📊",
+                "chartData": data,
+                "suggestions": get_suggestions(user_input, data)
+            }
+        return {
+            "text": "I don’t have any prepared data yet.",
+            "chartData": [],
+            "suggestions": get_suggestions(user_input)
+        }
     
     elif user_input in ["no", "n", "nope", "not now", "stop"]:
         last_data_cache["data"] = [] # Optional: clear cache if they decline
@@ -111,20 +139,29 @@ async def ask_bot(item: WaterQuery):
                     "* **'Why is [State] stressed?'** to learn the causes.\n"
                     "* **'What is an aquifer?'** for a definition.\n"
                     "* **'Compare [District A] and [District B]'** for more data.",
-            "chartData": []
+            "chartData": [],
+            "suggestions": get_suggestions(user_input)
         }
 
     # 1. WHY logic (Explicit)
     if "why" in user_input:
         for key, reason in WHY_MAP.items():
             if key in user_input:
-                return {"text": f"### Why is **{key.title()}** stressed?\n\n{reason}", "chartData": []}
+                return {
+                    "text": f"### Why is **{key.title()}** stressed?\n\n{reason}",
+                    "chartData": [],
+                    "suggestions": get_suggestions(user_input)
+                }
 
     # 2. Definition logic (Explicit)
     if any(w in user_input for w in ["what is", "define", "meaning of"]):
         for key, value in KNOWLEDGE_BASE.items():
             if key in user_input:
-                return {"text": f"### {key.title()}\n\n{value}", "chartData": []}
+                return {
+                    "text": f"### {key.title()}\n\n{value}",
+                    "chartData": [],
+                    "suggestions": get_suggestions(user_input)
+                }
 
     found_data = []
     text_prefix = "the comparison"
@@ -181,7 +218,11 @@ async def ask_bot(item: WaterQuery):
                             found_data.append({"name": best, "extraction": round(val, 2)})
 
     except Exception as e:
-        return {"text": f"Database error: {str(e)}", "chartData": []}
+        return {
+            "text": f"Database error: {str(e)}",
+            "chartData": [],
+            "suggestions": get_suggestions(user_input)
+        }
 
     # -------------------- RESPONSE --------------------
     if found_data:
@@ -192,23 +233,40 @@ async def ask_bot(item: WaterQuery):
         
         return {
             "text": f"{intro}Results for {text_prefix}:\n\n{explanations}\n\nWould you like a chart? (Yes/No)",
-            "chartData": []
+            "chartData": [],
+            "suggestions": get_suggestions(user_input, found_data)
         }
 
     # 3. Fallback logic (Implicit keyword matches)
     for key, tip in TIPS.items():
         if key in user_input:
-            return {"text": f"### Groundwater {key.title()} Tip\n\n{tip}", "chartData": []}
+            return {
+                "text": f"### Groundwater {key.title()} Tip\n\n{tip}",
+                "chartData": [],
+                "suggestions": get_suggestions(user_input)
+            }
 
     for key, value in KNOWLEDGE_BASE.items():
         if key in user_input:
-            return {"text": f"### {key.title()}\n\n{value}", "chartData": []}
+            return {
+                "text": f"### {key.title()}\n\n{value}",
+                "chartData": [],
+                "suggestions": get_suggestions(user_input)
+            }
 
     for key, reason in WHY_MAP.items():
         if key in user_input:
-             return {"text": f"### Why is **{key.title()}** stressed?\n\n{reason}", "chartData": []}
+             return {
+                 "text": f"### Why is **{key.title()}** stressed?\n\n{reason}",
+                 "chartData": [],
+                 "suggestions": get_suggestions(user_input)
+             }
 
-    return {"text": "I couldn't find that information. Try asking about 'conservation tips', 'recharge', or compare two regions like 'Jaipur and Patna'.", "chartData": []}
+    return {
+        "text": "I couldn't find that information. Try asking about 'conservation tips', 'recharge', or compare two regions like 'Jaipur and Patna'.",
+        "chartData": [],
+        "suggestions": get_suggestions(user_input)
+    }
 @app.get("/")
 def read_root():
     return {

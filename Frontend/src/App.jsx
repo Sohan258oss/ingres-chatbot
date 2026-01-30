@@ -29,6 +29,11 @@ export default function App() {
     const userMsg = typeof explicitMsg === "string" ? explicitMsg : input;
     if (!userMsg.trim()) return;
 
+    if (userMsg.toLowerCase().includes("show india map")) {
+      setShowMap(true);
+      return;
+    }
+
     setMessages((m) => [...m, { type: "user", text: userMsg }]);
     setInput("");
     setLoading(true);
@@ -47,7 +52,8 @@ export default function App() {
         {
           type: "bot",
           text: data.text,
-          chartData: data.chartData || []
+          chartData: data.chartData || [],
+          suggestions: data.suggestions || []
         }
       ]);
     } catch {
@@ -101,12 +107,9 @@ export default function App() {
                     <p><b>Try asking me:</b></p>
                     <div className="suggestions-list">
                       {[
-                        "Compare usage in Punjab and Bihar",
-                        "Why is Rajasthan over-exploited?",
-                        "Overall situation in India",
-                        "Groundwater conservation tips",
-                        "What is an aquifer?",
-                        "Arsenic in groundwater"
+                        "Compare Punjab and Bihar",
+                        "Why is Rajasthan stressed?",
+                        "Groundwater conservation tips"
                       ].map((s, i) => (
                         <button
                           key={i}
@@ -131,7 +134,21 @@ export default function App() {
             {/* --- CHAT MESSAGES --- */}
             {messages.map((m, i) => (
               <div key={i} className={`msg ${m.type}`}>
-            <div className="bubble">{m.text}</div>
+                <div className="bubble">{m.text}</div>
+
+                {m.type === "bot" && m.suggestions && m.suggestions.length > 0 && (
+                  <div className="bot-suggestions">
+                    {m.suggestions.map((s, si) => (
+                      <button
+                        key={si}
+                        className="suggestion-btn small"
+                        onClick={() => sendMessage(s)}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 {m.chartData && m.chartData.length > 0 && (
                   <div className="chart-card">
