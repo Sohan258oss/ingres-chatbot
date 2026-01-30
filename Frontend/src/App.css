@@ -379,8 +379,22 @@ body {
   font-weight: bold;
 }
 
+.suggestion-btn.small {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  width: auto;
+}
+
 .suggestion-btn:active {
   transform: translateY(0);
+}
+
+.bot-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  margin-bottom: 4px;
 }
 
 /* ------------------ INPUT AREA ------------------ */
