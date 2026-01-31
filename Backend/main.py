@@ -1,22 +1,24 @@
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from starlette.concurrency import run_in_threadpool
-from pydantic import BaseModel
-import sqlite3
-import requests
-import re
 import os
-from bs4 import BeautifulSoup
+import requests
 import json
 import math
+import sqlite3
+from fastapi import FastAPI, Request
+from contextlib import asynccontextmanager
+from starlette.concurrency import run_in_threadpool
+from pydantic import BaseModel
+from bs4 import BeautifulSoup
+from fastapi.middleware.cors import CORSMiddleware
 
+# -------------------- CORRECTED SEMANTIC SEARCH --------------------
 class SemanticSearch:
     _instance = None
 
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(SemanticSearch, cls).__new__(cls)
-            cls._instance.api_url = "https://router.huggingface.co/hf-inference/models/sentence-transformers/paraphrase-MiniLM-L3-v2"
+            # Use the direct pipeline URL to avoid routing errors
+            cls._instance.api_url = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/paraphrase-MiniLM-L3-v2"
             cls._instance.hf_token = os.getenv("HF_TOKEN")
             cls._instance.entities = []
             cls._instance.embeddings = None
@@ -27,13 +29,12 @@ class SemanticSearch:
         headers = {
             "Authorization": f"Bearer {self.hf_token}",
             "Content-Type": "application/json",
-            # THESE HEADERS FIX THE 400 ERROR
-            "X-Wait-For-Model": "true",
-            "X-Inference-Endpoint": "feature-extraction" 
         }
         
         try:
+            # We move wait_for_model into the payload options for better compatibility
             response = requests.post(self.api_url, headers=headers, json=payload, timeout=60)
+            
             if response.status_code != 200:
                 print(f"HF API Error: {response.status_code} - {response.text}")
                 return None
@@ -46,20 +47,24 @@ class SemanticSearch:
         new_embeddings = []
         for i in range(0, len(entities), batch_size):
             batch = entities[i : i + batch_size]
-            payload = {"inputs": batch} # Keep it simple, headers handle the rest
-            response = self._query_api(payload)
+            # Explicitly structured payload for feature extraction
+            payload = {
+                "inputs": batch,
+                "options": {"wait_for_model": True, "use_cache": True}
+            }
             
+            response = self._query_api(payload)
             if isinstance(response, list):
                 for item in response:
-                    # Logic to flatten nested lists if the API returns 3D instead of 2D
+                    # Logic to flatten: ensure we get a 1D vector per sentence
+                    # API sometimes returns [[v1, v2...]] (3D) instead of [v1, v2...] (2D)
                     temp = item
                     while isinstance(temp, list) and len(temp) > 0 and isinstance(temp[0], list):
                         temp = temp[0]
                     new_embeddings.append(temp)
             else:
-                print(f"Error encoding batch starting at {i}: {response}")
+                print(f"Error encoding batch starting at {i}. Response: {response}")
                 return
-
         if len(new_embeddings) == len(entities):
             self.entities = entities
             self.embeddings = new_embeddings
@@ -70,12 +75,12 @@ class SemanticSearch:
                     "model": self.api_url
                 }, f)
             print(f"Successfully cached {len(entities)} embeddings.")
-
     def load_embeddings(self):
         if os.path.exists(self.embeddings_path):
             try:
                 with open(self.embeddings_path, "r") as f:
                     data = json.load(f)
+                # Check if cached for the same model
                 if data.get("model") != self.api_url:
                     return False
                 self.entities = data["entities"]
@@ -85,37 +90,32 @@ class SemanticSearch:
                 print(f"Error loading embeddings: {e}")
                 return False
         return False
-
     def search(self, query, threshold=0.6):
         if self.embeddings is None or not self.entities:
-            return []
-        
-        payload = {"inputs": [query]}
+            return []  
+        payload = {
+            "inputs": [query],
+            "options": {"wait_for_model": True}
+        }
         query_embedding_list = self._query_api(payload)
-
         if not isinstance(query_embedding_list, list) or not query_embedding_list:
             return []
-
-        # Flatten the query embedding
+        # Extract and flatten query embedding
         query_embedding = query_embedding_list[0]
         while isinstance(query_embedding, list) and len(query_embedding) > 0 and isinstance(query_embedding[0], list):
             query_embedding = query_embedding[0]
-
         def cosine_similarity(a, b):
             dot_product = sum(x * y for x, y in zip(a, b))
             mag_a = math.sqrt(sum(x * x for x in a))
             mag_b = math.sqrt(sum(y * y for y in b))
             return dot_product / (mag_a * mag_b) if mag_a * mag_b > 0 else 0
-
         results = []
         for i, emb in enumerate(self.embeddings):
             score = cosine_similarity(query_embedding, emb)
             if score >= threshold:
                 results.append({"name": self.entities[i], "score": score})
-
         results.sort(key=lambda x: x["score"], reverse=True)
         return results
-
 from contextlib import asynccontextmanager
 
 semantic_search = SemanticSearch()
