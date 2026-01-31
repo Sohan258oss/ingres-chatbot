@@ -16,7 +16,7 @@ class SemanticSearch:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(SemanticSearch, cls).__new__(cls)
-            cls._instance.api_url = "https://router.huggingface.co/hf-inference/models/sentence-transformers/paraphrase-MiniLM-L3-v2"
+            cls._instance.api_url = "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2"
             cls._instance.hf_token = os.getenv("HF_TOKEN")
             cls._instance.entities = []
             cls._instance.embeddings = None
@@ -24,9 +24,12 @@ class SemanticSearch:
         return cls._instance
 
     def _query_api(self, payload):
-        headers = {"Authorization": f"Bearer {self.hf_token}"} if self.hf_token else {}
+        headers = {
+            "Authorization": f"Bearer {self.hf_token}",
+            "X-Task": "feature-extraction"
+        } if self.hf_token else {"X-Task": "feature-extraction"}
         try:
-            response = requests.post(self.api_url, headers=headers, json=payload, timeout=10)
+            response = requests.post(self.api_url, headers=headers, json=payload, timeout=60)
             if response.status_code != 200:
                 print(f"HF API Error: {response.status_code} - {response.text}")
                 return None
@@ -35,25 +38,38 @@ class SemanticSearch:
             print(f"HF API Request Exception: {e}")
             return None
 
-    def encode_entities(self, entities):
-        self.entities = entities
-        payload = {
-            "inputs": entities,
-            "options": {"wait_for_model": True}
-        }
-        response = self._query_api(payload)
-        if isinstance(response, list):
-            self.embeddings = response
+    def encode_entities(self, entities, batch_size=32):
+        new_embeddings = []
+        for i in range(0, len(entities), batch_size):
+            batch = entities[i : i + batch_size]
+            payload = {
+                "inputs": batch,
+                "options": {"wait_for_model": True}
+            }
+            response = self._query_api(payload)
+            if isinstance(response, list):
+                new_embeddings.extend(response)
+            else:
+                print(f"Error encoding entities: {response}")
+                return
+
+        if len(new_embeddings) == len(entities):
+            self.entities = entities
+            self.embeddings = new_embeddings
             with open(self.embeddings_path, "w") as f:
-                json.dump({"entities": self.entities, "embeddings": self.embeddings}, f)
-        else:
-            print(f"Error encoding entities: {response}")
+                json.dump({
+                    "entities": self.entities,
+                    "embeddings": self.embeddings,
+                    "model": self.api_url
+                }, f)
 
     def load_embeddings(self):
         if os.path.exists(self.embeddings_path):
             try:
                 with open(self.embeddings_path, "r") as f:
                     data = json.load(f)
+                if data.get("model") != self.api_url:
+                    return False
                 self.entities = data["entities"]
                 self.embeddings = data["embeddings"]
                 return True
