@@ -28,9 +28,7 @@ class SemanticSearch:
     def _query_api(self, payload):
         headers = {
             "Authorization": f"Bearer {self.hf_token}",
-            "Content-Type": "application/json",
-            "X-Task": "feature-extraction",
-            "X-Wait-For-Model": "true"
+            "Content-Type": "application/json"
         }
         
         try:
@@ -51,8 +49,7 @@ class SemanticSearch:
             batch = entities[i : i + batch_size]
             # Explicitly structured payload for feature extraction
             payload = {
-                "inputs": batch,
-                "options": {"wait_for_model": True, "use_cache": True}
+                "inputs": batch
             }
             
             response = self._query_api(payload)
