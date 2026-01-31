@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel
@@ -68,29 +68,33 @@ if not os.path.exists(DB_PATH):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize semantic search
-    if not semantic_search.load_embeddings():
-        try:
-            with sqlite3.connect(DB_PATH) as conn:
-                cursor = conn.cursor()
-                cursor.execute("PRAGMA table_info(assessments)")
-                cols = [info[1] for info in cursor.fetchall()]
-                state_col = next((c for c in cols if "state" in c.lower()), "State")
-                dist_col = next((c for c in cols if "district" in c.lower()), "District")
-                block_col = next((c for c in cols if "block" in c.lower() or "taluka" in c.lower()), "Block/Taluka")
+    # Initialize semantic search and cache locations
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA table_info(assessments)")
+            cols = [info[1] for info in cursor.fetchall()]
+            state_col = next((c for c in cols if "state" in c.lower()), "State")
+            dist_col = next((c for c in cols if "district" in c.lower()), "District")
+            block_col = next((c for c in cols if "block" in c.lower() or "taluka" in c.lower()), "Block/Taluka")
 
-                cursor.execute(f'SELECT DISTINCT "{state_col}" FROM assessments')
-                states = [r[0] for r in cursor.fetchall() if r[0]]
-                cursor.execute(f'SELECT DISTINCT "{dist_col}" FROM assessments')
-                districts = [r[0] for r in cursor.fetchall() if r[0]]
-                cursor.execute(f'SELECT DISTINCT "{block_col}" FROM assessments')
-                blocks = [r[0] for r in cursor.fetchall() if r[0]]
+            cursor.execute(f'SELECT DISTINCT "{state_col}" FROM assessments')
+            app.state.states_list = [r[0] for r in cursor.fetchall() if r[0]]
+            cursor.execute(f'SELECT DISTINCT "{dist_col}" FROM assessments')
+            app.state.districts_list = [r[0] for r in cursor.fetchall() if r[0]]
+            cursor.execute(f'SELECT DISTINCT "{block_col}" FROM assessments')
+            blocks = [r[0] for r in cursor.fetchall() if r[0]]
 
-                all_entities = list(set(states + districts + blocks))
+            if not semantic_search.load_embeddings():
+                # Unified corpus: locations + dictionary keys
+                knowledge_keys = list(KNOWLEDGE_BASE.keys())
+                tips_keys = list(TIPS.keys())
+                why_keys = list(WHY_MAP.keys())
+                all_entities = list(set(app.state.states_list + app.state.districts_list + blocks + knowledge_keys + tips_keys + why_keys))
                 if all_entities:
                     semantic_search.encode_entities(all_entities)
-        except Exception as e:
-            print(f"Error initializing semantic search: {e}")
+    except Exception as e:
+        print(f"Error initializing: {e}")
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -162,6 +166,51 @@ KNOWLEDGE_BASE = {
     "borewell": "A borewell is a deep, narrow hole drilled into the ground to access groundwater from aquifers.",
     "watershed": "A watershed is an area of land where all the water that falls in it and drains off it goes to a common outlet, such as a river or lake.",
     "salinity": "Salinity refers to the concentration of dissolved salts in water. High salinity can make groundwater unsuitable for drinking or irrigation.",
+    "master plan": "The Master Plan for Artificial Recharge to Groundwater-2020 envisages construction of about 1.42 crore rain water harvesting and artificial recharge structures.",
+    "gujarat salinity": "Coastal Gujarat faces seawater intrusion due to over-pumping, leading to increased salinity in groundwater.",
+    "paddy water": "Rice (paddy) is a water-intensive crop, often requiring 3,000 to 5,000 liters of water to produce 1 kg of grain.",
+    "sugarcane": "Sugarcane is another high water-consuming crop, contributing significantly to groundwater depletion in Maharashtra and UP.",
+    "millets": "Millets are climate-smart crops that require significantly less water than rice or wheat, making them ideal for water-stressed regions.",
+    "atal bhujal yojana": "Atal Bhujal Yojana (ATAL JAL) is a Central Sector Scheme for sustainable groundwater management with community participation.",
+    "cgwb": "The Central Ground Water Board (CGWB) is the apex organization in India for providing scientific inputs for management, exploration, and monitoring of groundwater.",
+    "pmksy": "Pradhan Mantri Krishi Sinchayee Yojana (PMKSY) focuses on 'Har Khet Ko Pani' and 'Per Drop More Crop'.",
+    "drip irrigation": "Drip irrigation delivers water directly to the plant's root zone, reducing evaporation and runoff, saving up to 40-70% water.",
+    "arsenic": "Arsenic contamination is a major health concern in the Ganga-Brahmaputra fluvial plains, including West Bengal, Bihar, and UP.",
+    "fluoride": "Excessive fluoride in groundwater can lead to dental and skeletal fluorosis; it is common in states like Rajasthan and Telangana.",
+    "nitrate": "Nitrate pollution in groundwater often results from excessive use of fertilizers in agriculture and improper sewage disposal.",
+    "jal shakti abhiyan": "Jal Shakti Abhiyan is a campaign for water conservation and water security in India.",
+    "national aquifer mapping": "The NAQUIM program aims to delineate aquifers, their characterization and develop plans for sustainable management.",
+    "virtual water": "Virtual water is the hidden flow of water if food or other commodities are traded from one place to another.",
+    "over-pumping": "Over-pumping occurs when groundwater is withdrawn faster than the rate of recharge, causing water tables to drop.",
+    "seawater intrusion": "In coastal areas, over-extraction of groundwater can cause seawater to flow into freshwater aquifers.",
+    "check dam": "A check dam is a small, sometimes temporary, dam constructed across a swale, drainage ditch, or waterway to counteract erosion by reducing water velocity.",
+    "percolation tank": "Percolation tanks are artificially created surface water bodies, submerging a highly permeable land area so that surface runoff is made to percolate and recharge the ground water storage.",
+    "dug well": "Dug wells are shallow wells excavated into the ground, usually with a diameter of several meters.",
+    "greywater": "Greywater is gently used water from bathroom sinks, showers, tubs, and washing machines. It is not water that has come into contact with feces.",
+    "blackwater": "Blackwater is wastewater from toilets, which likely contains pathogens.",
+    "infiltration": "Infiltration is the process by which water on the ground surface enters the soil.",
+    "transpiration": "Transpiration is the process by which moisture is carried through plants from roots to small pores on the underside of leaves, where it changes to vapor and is released to the atmosphere.",
+    "evapotranspiration": "Evapotranspiration is the sum of evaporation and plant transpiration from the Earth's land and ocean surface to the atmosphere.",
+    "water table": "The water table is the upper surface of the zone of saturation. The zone of saturation is where the pores and fractures of the ground are saturated with water.",
+    "confined aquifer": "A confined aquifer is an aquifer below the land surface that is saturated with water. Layers of impermeable material are both above and below the aquifer, causing it to be under pressure.",
+    "unconfined aquifer": "An unconfined aquifer is an aquifer whose upper water surface (water table) is at atmospheric pressure, and thus is able to rise and fall.",
+    "hydrogeology": "Hydrogeology is the area of geology that deals with the distribution and movement of groundwater in the soil and rocks of the Earth’s crust.",
+    "specific yield": "Specific yield is the ratio of the volume of water that, after being saturated, can be drained by gravity to its own volume.",
+    "permeability": "Permeability is a measure of the ability of a material (such as rocks) to transmit fluids.",
+    "porosity": "Porosity is a measure of the void spaces in a material, and is a fraction of the volume of voids over the total volume.",
+    "drawdown": "Drawdown is the reduction in the hydraulic head observed at a well in an aquifer, typically due to pumping a well as part of an aquifer test or well test.",
+    "cone of depression": "A cone of depression occurs in an aquifer when groundwater is pumped from a well. In an unconfined aquifer, this is an actual depression of the water levels.",
+    "baseflow": "Baseflow is the portion of streamflow that comes from 'the sum of deep subsurface flow and delayed shallow subsurface flow'.",
+    "catchment area": "The catchment area is the area from which rainfall flows into a particular river or lake.",
+    "siltation": "Siltation is a process by which water becomes dirty as a result of fine mineral particles in the water.",
+    "desalination": "Desalination is a process that takes away mineral components from saline water.",
+    "fecal coliform": "Fecal coliforms are a group of bacteria that are passed through the fecal excrement of humans, livestock and wildlife.",
+    "hard water": "Hard water is water that has high mineral content. Hard water is formed when water percolates through deposits of limestone, chalk or gypsum.",
+    "soft water": "Soft water is surface water that contains low concentrations of ions and in particular is low in ions of calcium and magnesium.",
+    "turbidity": "Turbidity is the cloudiness or haziness of a fluid caused by large numbers of individual particles that are generally invisible to the naked eye.",
+    "ph value": "The pH of water is a measure of how acidic/basic water is.",
+    "tds": "Total Dissolved Solids (TDS) is a measure of the dissolved combined content of all inorganic and organic substances present in a liquid.",
+    "dissolved oxygen": "Dissolved oxygen (DO) is the amount of gaseous oxygen (O2) dissolved in the water.",
 }
 
 # -------------------- CONTAMINANTS --------------------
@@ -211,7 +260,12 @@ TIPS = {
     "conservation": "To conserve groundwater: 1. Install rainwater harvesting systems. 2. Use drip or sprinkler irrigation. 3. Recycle greywater for gardening. 4. Fix leaks promptly.",
     "harvesting": "Rainwater harvesting involves collecting and storing rainwater from rooftops or ground surfaces to recharge aquifers or for direct use.",
     "farming": "Sustainable farming tips: 1. Adopt crop rotation. 2. Grow less water-intensive crops like millets. 3. Use mulch to retain soil moisture.",
-    "pollution": "Prevent pollution by: 1. Reducing fertilizer and pesticide use. 2. Proper disposal of hazardous waste. 3. Ensuring septic systems are well-maintained."
+    "pollution": "Prevent pollution by: 1. Reducing fertilizer and pesticide use. 2. Proper disposal of hazardous waste. 3. Ensuring septic systems are well-maintained.",
+    "crop choice": "Switch from water-intensive crops like paddy to millets or pulses in water-stressed regions.",
+    "mulching": "Use organic mulch in fields to reduce evaporation from the soil surface.",
+    "smart irrigation": "Adopt sensors and automated systems to provide water to crops only when needed.",
+    "community participation": "Form Water User Associations to collectively manage and monitor groundwater usage in villages.",
+    "well recharging": "Redirect surplus monsoon runoff into defunct dug wells to recharge local aquifers.",
 }
 
 # -------------------- EXPLANATION ENGINE --------------------
@@ -227,7 +281,7 @@ def explain_extraction(name, value):
         meaning = "groundwater is being extracted much faster than it can recharge"
 
     return (
-        f"{name} has an average groundwater extraction of {value}%. "
+        f"{name.title()} has an average groundwater extraction of {value}%. "
         f"This places it in a **{status}** category, meaning {meaning}."
     )
 
@@ -253,7 +307,7 @@ def get_suggestions(user_input, found_data=None):
 
 # -------------------- MAIN API --------------------
 @app.post("/ask")
-async def ask_bot(item: WaterQuery):
+async def ask_bot(item: WaterQuery, request: Request):
     user_input = item.message.strip().lower()
 
     # Normalize terms
@@ -292,144 +346,107 @@ async def ask_bot(item: WaterQuery):
             "suggestions": get_suggestions(user_input)
         }
 
-    # 0. NEWS logic (Explicit)
-    if any(re.search(rf"\b{k}\b", user_input) for k in ["latest", "news", "updates"]):
-        news = await run_in_threadpool(get_latest_news)
-        news_str = "\n".join([f"• {item}" for item in news])
-        return {
-            "text": f"### Latest Groundwater Updates 📰\n\n{news_str}",
-            "chartData": [],
-            "suggestions": get_suggestions(user_input)
-        }
+    # 3. UNIFIED SEMANTIC SEARCH (Priority 1)
+    results = semantic_search.search(user_input, threshold=0.65)
 
-    # 1. WHY logic (Explicit)
-    if "why" in user_input:
-        for key, reason in WHY_MAP.items():
-            if key in user_input:
-                return {
-                    "text": f"### Why is **{key.title()}** stressed?\n\n{reason}",
-                    "chartData": [],
-                    "suggestions": get_suggestions(user_input)
-                }
+    if results:
+        best_match = results[0]["name"]
 
-    # 2. Definition logic (Explicit)
-    if any(w in user_input for w in ["what is", "define", "meaning of"]):
-        for key, value in KNOWLEDGE_BASE.items():
-            if key in user_input:
-                return {
-                    "text": f"### {key.title()}\n\n{value}",
-                    "chartData": [],
-                    "suggestions": get_suggestions(user_input)
-                }
+        # 4. Direct Answer: Knowledge/Tips (Priority 2)
+        match_key = best_match.lower()
+        if match_key in KNOWLEDGE_BASE:
+            return {
+                "text": f"### {best_match.title()}\n\n{KNOWLEDGE_BASE[match_key]}",
+                "chartData": [],
+                "suggestions": get_suggestions(user_input)
+            }
 
-    found_data = []
-    text_prefix = "the comparison"
+        if match_key in TIPS:
+            return {
+                "text": f"### {best_match.title()} Tip\n\n{TIPS[match_key]}",
+                "chartData": [],
+                "suggestions": get_suggestions(user_input)
+            }
 
-    try:
-        with sqlite3.connect(DB_PATH) as conn:
-            cursor = conn.cursor()
+        if match_key in WHY_MAP and "why" in user_input:
+            return {
+                "text": f"### Why is **{best_match.title()}** stressed?\n\n{WHY_MAP[match_key]}",
+                "chartData": [],
+                "suggestions": get_suggestions(user_input)
+            }
 
-            # --- DYNAMIC COLUMN DETECTION ---
-            cursor.execute("PRAGMA table_info(assessments)")
-            cols = [info[1] for info in cursor.fetchall()]
-            
-            # This finds the actual name used in your DB regardless of case or spaces
-            state_col = next((c for c in cols if "state" in c.lower()), "State")
-            dist_col = next((c for c in cols if "district" in c.lower()), "District")
-            block_col = next((c for c in cols if "block" in c.lower() or "taluka" in c.lower()), "Block/Taluka")
-            extract_col = next((c for c in cols if "extraction" in c.lower() or "stage" in c.lower()), "Stage of Ground Water Extraction (%)")
+        # 5. Data Lookup: Location (Priority 3)
+        found_data = []
+        try:
+            with sqlite3.connect(DB_PATH) as conn:
+                cursor = conn.cursor()
+                cursor.execute("PRAGMA table_info(assessments)")
+                cols = [info[1] for info in cursor.fetchall()]
+                state_col = next((c for c in cols if "state" in c.lower()), "State")
+                dist_col = next((c for c in cols if "district" in c.lower()), "District")
+                block_col = next((c for c in cols if "block" in c.lower() or "taluka" in c.lower()), "Block/Taluka")
+                extract_col = next((c for c in cols if "extraction" in c.lower() or "stage" in c.lower()), "Stage of Ground Water Extraction (%)")
 
-            # 1. Top States logic
-            if any(w in user_input for w in ["top", "highest", "over-exploited"]):
-                cursor.execute(f'SELECT "{state_col}", AVG("{extract_col}") FROM assessments GROUP BY "{state_col}" ORDER BY AVG("{extract_col}") DESC LIMIT 5')
-                rows = cursor.fetchall()
-                found_data = [{"name": r[0], "extraction": round(r[1], 2)} for r in rows]
-                text_prefix = "the top 5 states by extraction"
+                states_list = getattr(request.app.state, "states_list", [])
+                districts_list = getattr(request.app.state, "districts_list", [])
+                states_map = {s.lower(): s for s in states_list}
+                districts_map = {d.lower(): d for d in districts_list}
 
-            # 2. Search / Comparison Logic
-            else:
-                # Distinguish between levels for query logic
-                cursor.execute(f'SELECT DISTINCT "{state_col}" FROM assessments')
-                states_list = [r[0] for r in cursor.fetchall() if r[0]]
-                cursor.execute(f'SELECT DISTINCT "{dist_col}" FROM assessments')
-                districts_list = [r[0] for r in cursor.fetchall() if r[0]]
-
-                semantic_results = semantic_search.search(user_input, threshold=0.6)
                 seen = set()
+                for res in results:
+                    name = res["name"]
+                    name_low = name.lower()
+                    if name_low in seen: continue
+                    seen.add(name_low)
 
-                for res in semantic_results:
-                    best = res["name"]
-                    if best.lower() not in seen:
-                        seen.add(best.lower())
-                        if best in states_list:
-                            cursor.execute(f'SELECT AVG("{extract_col}") FROM assessments WHERE "{state_col}" = ?', (best,))
-                        elif best in districts_list:
-                            cursor.execute(f'SELECT AVG("{extract_col}") FROM assessments WHERE "{dist_col}" = ?', (best,))
-                        else:
-                            cursor.execute(f'SELECT "{extract_col}" FROM assessments WHERE "{block_col}" = ?', (best,))
-                        
-                        val = cursor.fetchone()[0]
-                        if val is not None:
-                            found_data.append({"name": best, "extraction": round(val, 2)})
+                    if name_low in states_map:
+                        cursor.execute(f'SELECT AVG("{extract_col}") FROM assessments WHERE "{state_col}" = ?', (states_map[name_low],))
+                    elif name_low in districts_map:
+                        cursor.execute(f'SELECT AVG("{extract_col}") FROM assessments WHERE "{dist_col}" = ?', (districts_map[name_low],))
+                    elif name_low in KNOWLEDGE_BASE or name_low in TIPS or name_low in WHY_MAP:
+                        # If it's a key in our dicts, we might have already handled it as Priority 2.
+                        # We skip it here if it doesn't match a location.
+                        continue
+                    else:
+                        cursor.execute(f'SELECT "{extract_col}" FROM assessments WHERE "{block_col}" = ?', (name,))
 
-                found_data = found_data[:5]
+                    val = cursor.fetchone()
+                    if val and val[0] is not None:
+                        found_data.append({"name": name, "extraction": round(val[0], 2)})
 
-    except Exception as e:
-        return {
-            "text": f"Database error: {str(e)}",
-            "chartData": [],
-            "suggestions": get_suggestions(user_input)
-        }
+                    if len(found_data) >= 5: break
 
-    # -------------------- RESPONSE --------------------
-    if found_data:
-        text_prefix = "the comparison" if len(found_data) > 1 else "your search"
-        last_data_cache["data"] = found_data
+            if found_data:
+                last_data_cache["data"] = found_data
+                contaminant_warnings = []
+                for d in found_data:
+                    name_lower = d["name"].lower()
+                    if name_lower in CONTAMINANT_DATA:
+                        cons = ", ".join(CONTAMINANT_DATA[name_lower])
+                        contaminant_warnings.append(f"⚠️ Note: {d['name']} has reported high levels of {cons}.")
 
-        # Add contaminant warnings
-        contaminant_warnings = []
-        for d in found_data:
-            name_lower = d["name"].lower()
-            if name_lower in CONTAMINANT_DATA:
-                cons = ", ".join(CONTAMINANT_DATA[name_lower])
-                contaminant_warnings.append(f"⚠️ Note: {d['name']} has reported high levels of {cons}.")
+                explanations = "\n\n".join([explain_extraction(d["name"], d["extraction"]) for d in found_data])
+                warning_text = "\n\n" + "\n".join(contaminant_warnings) if contaminant_warnings else ""
+                intro = "Groundwater extraction measures usage relative to natural recharge.\n\n" if is_usage_query else ""
 
-        explanations = "\n\n".join([explain_extraction(d["name"], d["extraction"]) for d in found_data])
-        warning_text = "\n\n" + "\n".join(contaminant_warnings) if contaminant_warnings else ""
-        intro = "Groundwater extraction measures usage relative to natural recharge.\n\n" if is_usage_query else ""
-        
-        return {
-            "text": f"{intro}Results for {text_prefix}:\n\n{explanations}{warning_text}\n\nWould you like a chart? (Yes/No)",
-            "chartData": [],
-            "suggestions": get_suggestions(user_input, found_data)
-        }
+                return {
+                    "text": f"{intro}Results for your search:\n\n{explanations}{warning_text}\n\nWould you like a chart? (Yes/No)",
+                    "chartData": [],
+                    "suggestions": get_suggestions(user_input, found_data)
+                }
 
-    # 3. Fallback logic (Implicit keyword matches)
-    for key, tip in TIPS.items():
-        if key in user_input:
+        except Exception as e:
+            return {"text": f"Database error: {str(e)}", "chartData": [], "suggestions": get_suggestions(user_input)}
+
+        # Fallback for WHY_MAP if "why" wasn't in query but it's the best match and not a location
+        if match_key in WHY_MAP:
             return {
-                "text": f"### Groundwater {key.title()} Tip\n\n{tip}",
+                "text": f"### Why is **{best_match.title()}** stressed?\n\n{WHY_MAP[match_key]}",
                 "chartData": [],
                 "suggestions": get_suggestions(user_input)
             }
 
-    for key, value in KNOWLEDGE_BASE.items():
-        if key in user_input:
-            return {
-                "text": f"### {key.title()}\n\n{value}",
-                "chartData": [],
-                "suggestions": get_suggestions(user_input)
-            }
-
-    for key, reason in WHY_MAP.items():
-        if key in user_input:
-             return {
-                 "text": f"### Why is **{key.title()}** stressed?\n\n{reason}",
-                 "chartData": [],
-                 "suggestions": get_suggestions(user_input)
-             }
-
-    # 4. Final Fallback: News Scraper
+    # 6. Confidence Threshold Fallback: News Scraper (Priority 4)
     news = await run_in_threadpool(get_latest_news)
     news_str = "\n".join([f"• {item}" for item in news])
     return {
