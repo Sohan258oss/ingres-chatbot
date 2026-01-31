@@ -4,3 +4,4 @@ pandas
 pydantic
 requests
 beautifulsoup4
+starlette
