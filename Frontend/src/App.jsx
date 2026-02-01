@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import GroundwaterMap from "./GroundwaterMap";
+import WebGLWaves from "./components/WebGLWaves";
 import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -38,8 +39,12 @@ export default function App() {
     setInput("");
     setLoading(true);
 
+    const apiBase = window.location.hostname === "localhost"
+      ? "http://localhost:8000"
+      : "https://ingres-api.onrender.com";
+
     try {
-      const res = await fetch("https://ingres-api.onrender.com/ask", {
+      const res = await fetch(`${apiBase}/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: userMsg })
@@ -60,7 +65,7 @@ export default function App() {
     } catch {
       setMessages((m) => [
         ...m,
-        { type: "bot", text: "❌ Backend not responding. Please check your connection." }
+        { type: "bot", text: "Backend not responding. Please check your connection." }
       ]);
     } finally {
       setLoading(false);
@@ -85,14 +90,15 @@ export default function App() {
 
   return (
     <div className="app">
+      <WebGLWaves />
       <header className="header">
-        <div className="header-title">💧 INGRES AI Groundwater Assistant</div>
+        <div className="header-title">MyWaterBot AI Groundwater Assistant</div>
         <button
           className="map-toggle-btn"
           onClick={() => setShowMap(!showMap)}
           aria-label={showMap ? "Back to Chat" : "View Groundwater Map"}
         >
-          {showMap ? "💬 Back to Chat" : "🗺️ View India Map"}
+          {showMap ? "Back to Chat" : "View India Map"}
         </button>
       </header>
 
@@ -107,7 +113,7 @@ export default function App() {
             {messages.length === 0 && (
               <div className="welcome-container">
                 <div className="welcome-box">
-                  <h2>👋 Hello! I am the INGRES AI Chatbot</h2>
+                  <h2>Hello! I am the MyWaterBot AI Chatbot</h2>
                   <p>
                     I am here to help you analyze and understand <b>India's Groundwater Resources</b>.
                     I can provide data, explain causes of water stress, and generate comparison charts.
@@ -133,7 +139,7 @@ export default function App() {
                         className="suggestion-btn highlight"
                         onClick={() => setShowMap(true)}
                       >
-                        🗺️ View India Map with Levels
+                        View India Map with Levels
                       </button>
                     </div>
                   </div>

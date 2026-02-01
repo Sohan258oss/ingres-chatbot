@@ -16,7 +16,7 @@
 
 body {
   margin: 0;
-  background: linear-gradient(180deg, var(--palette-very-pale-blue), var(--palette-pale-blue));
+  background: #001f3f; /* Deep blue fallback */
 }
 
 /* ------------------ APP LAYOUT ------------------ */
@@ -24,6 +24,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  background: transparent;
 }
 
 /* ------------------ HEADER ------------------ */

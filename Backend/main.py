@@ -158,7 +158,7 @@ def get_wikipedia_image(query):
         # Simple heuristic: capitalize first letter for Wikipedia
         term = query.title().replace(' ', '_')
         url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{term}"
-        headers = {"User-Agent": "INGRES_AI_Bot/1.0 (support@ingres.ai)"}
+        headers = {"User-Agent": "MyWaterBot_AI_Bot/1.0 (support@mywaterbot.ai)"}
         response = requests.get(url, headers=headers, timeout=5)
         if response.status_code == 200:
             data = response.json()
@@ -463,7 +463,7 @@ async def ask_bot(item: WaterQuery, request: Request):
             data = last_data_cache["data"]
             last_data_cache["data"] = []
             return {
-                "text": "Here’s a visual breakdown of the data 📊",
+                "text": "Here’s a visual breakdown of the data",
                 "chartData": data,
                 "suggestions": get_suggestions(user_input, data)
             }
@@ -476,7 +476,7 @@ async def ask_bot(item: WaterQuery, request: Request):
     elif user_input in ["no", "n", "nope", "not now", "stop"]:
         last_data_cache["data"] = [] # Optional: clear cache if they decline
         return {
-            "text": "No problem! 😊 What would you like to do next? You can ask me:\n\n"
+            "text": "No problem! What would you like to do next? You can ask me:\n\n"
                     "* **'Why is [State] stressed?'** to learn the causes.\n"
                     "* **'What is an aquifer?'** for a definition.\n"
                     "* **'Compare [District A] and [District B]'** for more data.",
@@ -486,6 +486,18 @@ async def ask_bot(item: WaterQuery, request: Request):
 
     # 3. UNIFIED SEMANTIC SEARCH (Priority 1)
     results = semantic_search.search(user_input, threshold=0.65)
+
+    # Keyword fallback if semantic search fails or is uninitialized
+    if not results:
+        states_list = getattr(request.app.state, "states_list", [])
+        districts_list = getattr(request.app.state, "districts_list", [])
+        # Simple match
+        for s in states_list:
+            if s.lower() in user_input:
+                results.append({"name": s, "score": 1.0})
+        for d in districts_list:
+            if d.lower() in user_input:
+                results.append({"name": d, "score": 1.0})
 
     if results:
         best_match = results[0]["name"]
@@ -583,7 +595,7 @@ async def ask_bot(item: WaterQuery, request: Request):
                     contaminant_text = ""
                     if name_lower in CONTAMINANT_DATA:
                         cons = ", ".join(CONTAMINANT_DATA[name_lower])
-                        contaminant_text = f"\n\n⚠️ **Note:** {d['name']} has reported high levels of {cons}."
+                        contaminant_text = f"\n\n**Note:** {d['name']} has reported high levels of {cons}."
 
                     unified_responses.append(f"### {d['name'].title()}\n{explanation}{cause_text}{contaminant_text}")
 
@@ -631,7 +643,7 @@ async def get_news():
 def read_root():
     return {
         "status": "Online",
-        "message": "INGRES AI Groundwater API is running",
+        "message": "MyWaterBot AI Groundwater API is running",
         "endpoints": {
             "ask": "/ask (POST)",
             "get-news": "/get-news (GET)",

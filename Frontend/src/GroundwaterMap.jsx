@@ -62,7 +62,7 @@ const GroundwaterMap = () => {
           </div>
           {contaminantData[selectedState] && (
             <div className="contaminant-warning">
-              ⚠️ Contaminants: {contaminantData[selectedState].join(", ")}
+              Contaminants: {contaminantData[selectedState].join(", ")}
             </div>
           )}
         </div>

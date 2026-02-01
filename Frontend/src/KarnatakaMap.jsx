@@ -26,7 +26,7 @@ const KarnatakaMap = ({ onBack }) => {
             </div>
             {contaminantData[hoveredDistrict] && (
               <div className="contaminant-warning" style={{ fontSize: "0.85rem", opacity: 0.9 }}>
-                ⚠️ Contaminants: {contaminantData[hoveredDistrict].join(", ")}
+                Contaminants: {contaminantData[hoveredDistrict].join(", ")}
               </div>
             )}
           </div>
