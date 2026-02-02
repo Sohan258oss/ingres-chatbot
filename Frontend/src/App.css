@@ -1,10 +1,10 @@
 /* ------------------ COLORS ------------------ */
 :root {
-  --palette-deep-blue: #005CE6;
+  --palette-deep-blue: #011627;
   --palette-medium-blue: #00A3E0;
   --palette-sky-blue: #7AD7F0;
   --palette-pale-blue: #BAE9F7;
-  --palette-very-pale-blue: #D6F2FB;
+  --palette-very-pale-blue: #F0F8FF;
   --palette-white: #FFFFFF;
 }
 
@@ -16,7 +16,7 @@
 
 body {
   margin: 0;
-  background: #001f3f; /* Deep blue fallback */
+  background: #011627;
 }
 
 /* ------------------ APP LAYOUT ------------------ */
@@ -33,7 +33,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(255, 249, 240, 0.8);
+  background: #F0F8FF;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid #e5e7eb;
@@ -41,7 +41,7 @@ body {
 }
 
 .header-title {
-  color: navy;
+  color: #011627;
   font-size: 1.2rem;
   font-weight: 600;
   letter-spacing: 0.5px;
@@ -69,9 +69,9 @@ body {
 }
 
 .header .map-toggle-btn {
-  background: transparent;
-  color: navy;
-  border: 1px solid navy;
+  background: #F0F8FF;
+  color: #011627;
+  border: 1px solid #011627;
   padding: 8px 20px;
   border-radius: 35px;
   font-weight: 600;
@@ -379,8 +379,9 @@ body {
   background: #ffffff;
   border-radius: 24px;
   padding: 32px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 0 10px rgba(240, 248, 255, 0.5), 0 10px 30px rgba(0, 0, 0, 0.05);
   text-align: center;
+  border: 1px solid #F0F8FF;
 }
 
 .welcome-box h2 {
