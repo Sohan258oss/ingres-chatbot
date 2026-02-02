@@ -412,6 +412,39 @@ def explain_extraction(name, value):
         f"**Actionable Tip:** {tip}"
     )
 
+def generate_data_explanation(data):
+    if not data:
+        return "I don't have enough data to provide an explanation."
+
+    if len(data) == 1:
+        return explain_extraction(data[0]['name'], data[0]['extraction'])
+
+    # Comparison logic for multiple items
+    sorted_data = sorted(data, key=lambda x: x['extraction'], reverse=True)
+    highest = sorted_data[0]
+    lowest = sorted_data[-1]
+
+    explanation = f"### Data Comparison & Explanation\n\n"
+    explanation += f"This chart compares the groundwater extraction levels of {len(data)} regions. "
+    explanation += f"**{highest['name'].title()}** shows the highest extraction rate at **{highest['extraction']}%**, "
+
+    if highest['extraction'] > 100:
+        explanation += "which is categorized as **over-exploited**. "
+    elif highest['extraction'] > 70:
+        explanation += "which is **stressed**. "
+    else:
+        explanation += "which is still within **relatively safe** limits. "
+
+    explanation += f"Meanwhile, **{lowest['name'].title()}** has the lowest rate among those shown at **{lowest['extraction']}%**. "
+
+    gap = highest['extraction'] - lowest['extraction']
+    if gap > 30:
+        explanation += f"The gap of {round(gap, 2)}% highlights a significant regional disparity in water usage and recharge balance. "
+
+    explanation += "\n\n**Actionable Insight:** Regions with extraction above 70% should prioritize water conservation and crop diversification to ensure long-term sustainability."
+
+    return explanation
+
 # -------------------- SUGGESTION ENGINE --------------------
 def get_suggestions(user_input, found_data=None):
     suggestions = ["Conservation tips", "What is an aquifer?", "Show India map"]
@@ -461,9 +494,10 @@ async def ask_bot(item: WaterQuery, request: Request):
     if user_input in ["yes", "show chart", "sure", "ok"]:
         if last_data_cache["data"]:
             data = last_data_cache["data"]
+            explanation = generate_data_explanation(data)
             last_data_cache["data"] = []
             return {
-                "text": "Here’s a visual breakdown of the data",
+                "text": f"Here’s a visual breakdown of the data:\n\n{explanation}",
                 "chartData": data,
                 "suggestions": get_suggestions(user_input, data)
             }
@@ -506,11 +540,13 @@ async def ask_bot(item: WaterQuery, request: Request):
         # --- A. CHECK FOR "WHY" INTENT FIRST ---
         # This ensures "Why is Punjab stressed?" doesn't just return a data table.
         if "why" in user_input and match_key in WHY_MAP:
-            img_url = await run_in_threadpool(get_image_url, f"{best_match} groundwater stress")
+            # Refined query for state-specific depth maps
+            img_url = await run_in_threadpool(get_image_url, f"{best_match} groundwater depth map district wise")
             return {
                 "text": f"### Why is **{best_match.title()}** stressed?\n\n{WHY_MAP[match_key]}",
                 "chartData": [],
                 "imageUrl": img_url,
+                "showLegend": True,
                 "suggestions": get_suggestions(user_input)
             }
 
@@ -602,13 +638,21 @@ async def ask_bot(item: WaterQuery, request: Request):
                 full_response = "\n\n---\n\n".join(unified_responses)
                 intro = "Groundwater extraction measures usage relative to natural recharge.\n\n" if is_usage_query else ""
 
-                # Fetch image for the first location found
-                img_url = await run_in_threadpool(get_image_url, f"{found_data[0]['name']} India")
+                # Fetch image for the locations found
+                if len(found_data) > 1:
+                    # Comparison query for multiple states/districts
+                    names = [d['name'] for d in found_data]
+                    img_query = f"{' and '.join(names[:2])} groundwater depth comparison map"
+                else:
+                    img_query = f"{found_data[0]['name']} groundwater depth map district wise"
+
+                img_url = await run_in_threadpool(get_image_url, img_query)
 
                 return {
                     "text": f"{intro}{full_response}\n\nWould you like a chart? (Yes/No)",
                     "chartData": [],
                     "imageUrl": img_url,
+                    "showLegend": True,
                     "suggestions": get_suggestions(user_input, found_data)
                 }
 
