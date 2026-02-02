@@ -26,8 +26,8 @@ const WebGLWaves = () => {
         float wave = sin(uv.x * 10.0 + u_time * 2.0) * 0.05;
         wave += sin(uv.y * 8.0 + u_time * 1.5) * 0.05;
 
-        vec3 topColor = vec3(0.0, 0.4, 0.8);
-        vec3 bottomColor = vec3(0.0, 0.1, 0.3);
+        vec3 topColor = vec3(0.0039, 0.0863, 0.1529);
+        vec3 bottomColor = vec3(0.0039, 0.0863, 0.1529);
         vec3 color = mix(topColor, bottomColor, uv.y + wave);
 
         gl_FragColor = vec4(color, 1.0);
