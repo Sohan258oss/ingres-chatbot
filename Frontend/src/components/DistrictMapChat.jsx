@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import MapLegend from "./MapLegend";
 import { karnatakaDistrictPaths } from "../data/karnataka_paths";
+import { contaminantData } from "../data/contaminants";
 
 // Color scale for Extraction Percentage (%)
 const getExtractionColor = (extraction) => {
@@ -60,6 +61,11 @@ const DistrictMapChat = ({ stateName, districtData }) => {
           {hoveredDistrict && (
             <div className="district-info-overlay">
               <strong>{hoveredDistrict.name}</strong>: {hoveredDistrict.val !== undefined ? hoveredDistrict.val + '%' : 'No data'}
+                {contaminantData[hoveredDistrict.name] && (
+                  <div className="contaminants-mini">
+                    Contaminants: {contaminantData[hoveredDistrict.name].join(", ")}
+                  </div>
+                )}
             </div>
           )}
         </div>
@@ -70,8 +76,15 @@ const DistrictMapChat = ({ stateName, districtData }) => {
             {districtData.map((d, i) => (
               <div key={i} className="district-item-chat">
                 <span className="dot" style={{ backgroundColor: getExtractionColor(d.extraction) }}></span>
-                <span className="name">{d.name}</span>
-                <span className="value">{d.extraction}%</span>
+                <div className="district-row-chat">
+                  <span className="name">{d.name}</span>
+                  <span className="value">{d.extraction}%</span>
+                </div>
+                {contaminantData[d.name] && (
+                  <div className="contaminants-list-mini">
+                    {contaminantData[d.name].join(", ")}
+                  </div>
+                )}
               </div>
             ))}
           </div>
