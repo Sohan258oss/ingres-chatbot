@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import GroundwaterMap from "./GroundwaterMap";
 import WebGLWaves from "./components/WebGLWaves";
+import MapLegend from "./components/MapLegend";
 import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -95,6 +96,7 @@ export default function App() {
           text: data.text,
           chartData: data.chartData || [],
           imageUrl: data.imageUrl || null,
+          showLegend: data.showLegend || false,
           suggestions: data.suggestions || []
         }
       ]);
@@ -198,6 +200,11 @@ export default function App() {
                 {m.type === "bot" && m.imageUrl && (
                   <div className="bot-image-container">
                     <img src={m.imageUrl} alt="Relevant groundwater visual" className="bot-image" />
+                    {m.showLegend && (
+                      <div className="chat-legend-wrapper">
+                        <MapLegend />
+                      </div>
+                    )}
                   </div>
                 )}
 

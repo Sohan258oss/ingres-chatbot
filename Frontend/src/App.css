@@ -321,6 +321,33 @@ body {
   padding-top: 20px;
 }
 
+.chat-legend-wrapper {
+  padding: 12px;
+  background: #f8fafc;
+  border-top: 1px solid var(--palette-pale-blue);
+}
+
+.chat-legend-wrapper .map-legend {
+  border-top: none;
+  padding-top: 0;
+}
+
+.chat-legend-wrapper .map-legend h3 {
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+  text-align: left;
+  color: var(--palette-deep-blue);
+}
+
+.chat-legend-wrapper .legend-items {
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.chat-legend-wrapper .legend-item {
+  font-size: 0.8rem;
+}
+
 .map-legend h3 {
   margin-top: 0;
   margin-bottom: 16px;
