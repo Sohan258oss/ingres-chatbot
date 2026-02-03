@@ -841,11 +841,47 @@ button:not(.send-btn):active {
 .bar-fill {
   height: 100%;
   border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 2px 5px rgba(255, 255, 255, 0.3), inset 0 -2px 5px rgba(0, 0, 0, 0.1);
+  animation: fill-bar 1.5s cubic-bezier(0.1, 0.5, 0.5, 1);
   transition: width 0.5s ease-out;
 }
-.bar-fill.safe { background: #2ecc71; }
-.bar-fill.stressed { background: #f1c40f; }
-.bar-fill.over-exploited { background: #e74c3c; }
+
+@keyframes fill-bar {
+  0% { width: 0; }
+}
+
+.bar-fill::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  animation: water-flow 3s linear infinite;
+}
+
+@keyframes water-flow {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+.bar-fill.safe {
+  background: linear-gradient(180deg, #2ecc71, #27ae60);
+}
+.bar-fill.stressed {
+  background: linear-gradient(180deg, #f1c40f, #f39c12);
+}
+.bar-fill.over-exploited {
+  background: linear-gradient(180deg, #e74c3c, #c0392b);
+}
 .bar-value {
   position: absolute;
   right: 10px;

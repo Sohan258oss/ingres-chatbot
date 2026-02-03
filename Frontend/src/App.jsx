@@ -334,10 +334,10 @@ export default function App() {
                               data: m.chartData.map((d) => d.extraction),
                               backgroundColor: m.chartData.map((d) =>
                                 d.extraction <= 70
-                                  ? "rgba(46, 204, 113, 0.8)"
+                                  ? "rgba(46, 204, 113, 0.85)"
                                   : d.extraction <= 100
-                                  ? "rgba(241, 196, 15, 0.8)"
-                                  : "rgba(231, 76, 60, 0.8)"
+                                  ? "rgba(241, 196, 15, 0.85)"
+                                  : "rgba(231, 76, 60, 0.85)"
                               ),
                               borderColor: m.chartData.map((d) =>
                                 d.extraction <= 70 ? "#27ae60" : d.extraction <= 100 ? "#f39c12" : "#c0392b"
@@ -353,6 +353,10 @@ export default function App() {
                         options={{
                           responsive: true,
                           maintainAspectRatio: false,
+                          animation: {
+                            duration: 2000,
+                            easing: 'easeOutQuart'
+                          },
                           plugins: {
                             legend: { display: false },
                             tooltip: {
