@@ -188,7 +188,7 @@ async def get_smart_response(user_query: str, context: str):
     try:
         # chat_completion yields chunks incrementally if stream=True
         # This aligns with the 'conversational' task required by some providers
-        stream = client.chat_completion(
+        stream = await client.chat_completion(
             model="meta-llama/Meta-Llama-3-8B-Instruct",
             messages=messages,
             stream=True,
